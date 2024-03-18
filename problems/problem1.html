@@ -29,10 +29,20 @@
 
     let engine = ThreeEngine.new_default_3d();
 
+    let settings = {
+        x: 0,
+        y: 0,
+        z: 0
+    }
+
     let gui = get_default_lil_gui();
+    gui.add(settings, 'x', -2.0, 2.0);
+    gui.add(settings, 'y', -2.0, 2.0);
+    gui.add(settings, 'z', -2.0, 2.0);
 
     engine.animation_loop(() => {
-
+        let center = [settings.x, settings.y, settings.z];
+        engine.draw_debug_sphere(center, 0.04, 0x003366, 0.7);
     });
 
 </script>

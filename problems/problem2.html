@@ -31,10 +31,17 @@
 
     let engine = ThreeEngine.new_default_3d();
 
+    let settings = {
+        time_elapsed: 'Time Elapsed: 0'
+    }
+
     let gui = get_default_lil_gui();
+    gui.add(settings, 'time_elapsed').disable();
 
     engine.animation_loop(() => {
-
+        let t = engine.get_time_elapsed();
+        settings.time_elapsed = 'Time Elapsed: ' + t;
+        refresh_displays(gui);
     });
 
 </script>

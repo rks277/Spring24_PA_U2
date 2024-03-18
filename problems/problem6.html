@@ -21,13 +21,102 @@
 </head>
 <body>
 <script type="module">
-    import {ThreeEngine} from "../js/utils/utils_three.js";
+    // import {ThreeEngine} from "../js/utils/utils_three.js";
 
     // todo: recreate this visualization, demonstrating your understanding of displacement-based distance in SE(2)
     // todo: https://yale-cpsc-487-587-internal-djrakita-c95fa6c3239a481a48d29a6b0fd.gitlab.io/html/visualizations/SE2_distance2.html
     // todo: make sure you are using the displacement-based distance!
     // todo: or, feel free to come up with any create visualization here that demonstrates your understanding of SE(2) distance
 
+    import { ThreeEngine, get_default_lil_gui } from "../../js/utils/utils_three.js";
+    import {mul_matrix_matrix} from "../../js/utils/utils_math.js";
+    import {refresh_displays} from "../../js/utils/utils_three.js";
+
+    function multiply_3x3_matrix_and_3x1_vector(matrix, vector) {
+        // from hw 1
+        return [
+            [matrix[0][0]*vector[0] + matrix[0][1]*vector[1] + matrix[0][2]*vector[2]],
+            [matrix[1][0]*vector[0] + matrix[1][1]*vector[1] + matrix[1][2]*vector[2]],
+            [matrix[2][0]*vector[0] + matrix[2][1]*vector[1] + matrix[2][2]*vector[2]]
+        ];
+    }
+
+    let engine = ThreeEngine.new_default_2d();
+
+    let settings = {
+        tx1: 0,
+        ty1: 0,
+        theta1: 0,
+        tx2: 0,
+        ty2: 0,
+        theta2: 0,
+    }
+
+    let actions = {
+        reset_matrix1: function() {
+            settings.theta1 = 0;
+            settings.tx1 = 0;
+            settings.ty1 = 0;
+            refresh_displays(gui);
+        },
+        reset_matrix2: function() {
+            settings.theta2 = 0;
+            settings.tx2 = 0;
+            settings.ty2 = 0;
+            refresh_displays(gui);
+        }
+    };
+
+    let gui = get_default_lil_gui();
+
+    let folder = gui.addFolder('Controls');
+    folder.add(settings, 'theta1', -Math.PI, Math.PI).name('Theta1');
+    folder.add(settings, 'tx1', -2.0, 2.0).name('tx1');
+    folder.add(settings, 'ty1', -2.0, 2.0).name('ty1');
+    folder.add(actions, 'reset_matrix1').name('reset1');
+    folder.add(settings, 'theta2', -Math.PI, Math.PI).name('Theta2');
+    folder.add(settings, 'tx2', -2.0, 2.0).name('tx2');
+    folder.add(settings, 'ty2', -2.0, 2.0).name('ty2');
+    folder.add(actions, 'reset_matrix2').name('reset2');
+
+
+    engine.animation_loop(function() {
+        let rot1 = [
+            [Math.cos(settings.theta1), -Math.sin(settings.theta1)],
+            [Math.sin(settings.theta1), Math.cos(settings.theta1)]
+        ];
+
+        let m1 = [
+            [rot1[0][0], rot1[0][1], settings.tx1],
+            [rot1[1][0], rot1[1][1], settings.ty1],
+            [0, 0, 1]
+        ];
+
+        let rot2 = [
+            [Math.cos(settings.theta2), -Math.sin(settings.theta2)],
+            [Math.sin(settings.theta2), Math.cos(settings.theta2)]
+        ];
+
+        let m2 = [
+            [rot2[0][0], rot2[0][1], settings.tx2],
+            [rot2[1][0], rot2[1][1], settings.ty2],
+            [0, 0, 1]
+        ];
+
+        refresh_displays(gui);
+
+        let c1 = multiply_3x3_matrix_and_3x1_vector(m1, [1,0,1]);
+        let c2 = multiply_3x3_matrix_and_3x1_vector(m1, [0,1,1]);
+
+        engine.draw_debug_vector([settings.tx1,settings.ty1], [c1[0], c1[1]], 0.035, undefined, 0xff3333);
+        engine.draw_debug_vector([settings.tx1,settings.ty1], [c2[0], c2[1]], 0.035, undefined, 0x33ff33);
+
+        let d1 = multiply_3x3_matrix_and_3x1_vector(m2, [1,0,1]);
+        let d2 = multiply_3x3_matrix_and_3x1_vector(m2, [0,1,1]);
+
+        engine.draw_debug_vector([settings.tx2,settings.ty2], [d1[0], d1[1]], 0.035, undefined, 0x468499);
+        engine.draw_debug_vector([settings.tx2,settings.ty2], [d2[0], d2[1]], 0.035, undefined, 0x8A2BE2);
+    });
 </script>
 </body>
 </html>
