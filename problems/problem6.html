@@ -29,17 +29,8 @@
     // todo: or, feel free to come up with any create visualization here that demonstrates your understanding of SE(2) distance
 
     import { ThreeEngine, get_default_lil_gui } from "../../js/utils/utils_three.js";
-    import {mul_matrix_matrix} from "../../js/utils/utils_math.js";
+    import {mul_matrix_matrix, transpose} from "../../js/utils/utils_math.js";
     import {refresh_displays} from "../../js/utils/utils_three.js";
-
-    function multiply_3x3_matrix_and_3x1_vector(matrix, vector) {
-        // from hw 1
-        return [
-            [matrix[0][0]*vector[0] + matrix[0][1]*vector[1] + matrix[0][2]*vector[2]],
-            [matrix[1][0]*vector[0] + matrix[1][1]*vector[1] + matrix[1][2]*vector[2]],
-            [matrix[2][0]*vector[0] + matrix[2][1]*vector[1] + matrix[2][2]*vector[2]]
-        ];
-    }
 
     let engine = ThreeEngine.new_default_2d();
 
@@ -50,6 +41,7 @@
         tx2: 0,
         ty2: 0,
         theta2: 0,
+        dist_string: 1.0
     }
 
     let actions = {
@@ -69,16 +61,15 @@
 
     let gui = get_default_lil_gui();
 
-    let folder = gui.addFolder('Controls');
-    folder.add(settings, 'theta1', -Math.PI, Math.PI).name('Theta1');
-    folder.add(settings, 'tx1', -2.0, 2.0).name('tx1');
-    folder.add(settings, 'ty1', -2.0, 2.0).name('ty1');
-    folder.add(actions, 'reset_matrix1').name('reset1');
-    folder.add(settings, 'theta2', -Math.PI, Math.PI).name('Theta2');
-    folder.add(settings, 'tx2', -2.0, 2.0).name('tx2');
-    folder.add(settings, 'ty2', -2.0, 2.0).name('ty2');
-    folder.add(actions, 'reset_matrix2').name('reset2');
-
+    gui.add(settings, 'theta1', -6.28, 6.28).name('Theta1');
+    gui.add(settings, 'tx1', -2.0, 2.0).name('tx1');
+    gui.add(settings, 'ty1', -2.0, 2.0).name('ty1');
+    gui.add(actions, 'reset_matrix1').name('reset1');
+    gui.add(settings, 'theta2', -6.28, 6.28).name('Theta2');
+    gui.add(settings, 'tx2', -2.0, 2.0).name('tx2');
+    gui.add(settings, 'ty2', -2.0, 2.0).name('ty2');
+    gui.add(actions, 'reset_matrix2').name('reset2');
+    gui.add(settings, 'dist_string').name('disp based dis').disable();
 
     engine.animation_loop(function() {
         let rot1 = [
@@ -105,17 +96,49 @@
 
         refresh_displays(gui);
 
-        let c1 = multiply_3x3_matrix_and_3x1_vector(m1, [1,0,1]);
-        let c2 = multiply_3x3_matrix_and_3x1_vector(m1, [0,1,1]);
+        let c1 = mul_matrix_matrix(m1, [[1],[0],[1]]);
+        let c2 = mul_matrix_matrix(m1, [[0],[1],[1]]);
 
         engine.draw_debug_vector([settings.tx1,settings.ty1], [c1[0], c1[1]], 0.035, undefined, 0xff3333);
         engine.draw_debug_vector([settings.tx1,settings.ty1], [c2[0], c2[1]], 0.035, undefined, 0x33ff33);
 
-        let d1 = multiply_3x3_matrix_and_3x1_vector(m2, [1,0,1]);
-        let d2 = multiply_3x3_matrix_and_3x1_vector(m2, [0,1,1]);
+        let d1 = mul_matrix_matrix(m2, [[1],[0],[1]]);
+        let d2 = mul_matrix_matrix(m2, [[0],[1],[1]]);
 
         engine.draw_debug_vector([settings.tx2,settings.ty2], [d1[0], d1[1]], 0.035, undefined, 0x468499);
         engine.draw_debug_vector([settings.tx2,settings.ty2], [d2[0], d2[1]], 0.035, undefined, 0x8A2BE2);
+
+        let rot1_inv = transpose(rot1);
+        let new_t = mul_matrix_matrix(rot1_inv, [[-m1[0][2]], [-m1[1][2]]]);
+        let m1_inv = [
+            [rot1_inv[0][0], rot1_inv[0][1], new_t[0]],
+            [rot1_inv[1][0], rot1_inv[1][1], new_t[1]],
+            [0, 0, 1]
+        ];
+        let displacement = mul_matrix_matrix(m1_inv, m2);
+        let a1 = Math.atan2(displacement[1][0], displacement[0][0]);
+
+        let p;
+        let q;
+
+        if (Math.abs(a1) < 0.0001) {
+            p = 1 - a1**2 / 6 + a1**4 / 120;
+            q = a1 / 2 - a1**3 / 24 + a1**5 / 720;
+        } else {
+            p = Math.sin(a1) / a1;
+            q = (1 - Math.cos(a1)) / a1;
+        }
+
+        let new_p = p / (p**2 + q**2)
+        let new_q = q / (p**2 + q**2)
+        let pqMat = [
+            [new_p, new_q],
+            [-new_q, new_p],
+        ];
+        let a23 = mul_matrix_matrix(pqMat, [[displacement[0][2]], [displacement[1][2]]]);
+        let dist = Math.sqrt(a1**2 + a23[0]**2 + a23[1]**2);
+        settings.dist_string = dist.toString();
+        refresh_displays(gui);
     });
 </script>
 </body>
